@@ -1,4 +1,4 @@
----
+f---
 description: 'Documentation for Table'
 keywords: ['compression', 'codec', 'schema', 'DDL']
 sidebar_label: 'TABLE'
@@ -434,6 +434,10 @@ These codecs are designed to make compression more effective by exploiting speci
 #### T64 {#t64}
 
 `T64` — Compression approach that crops unused high bits of values in integer data types (including `Enum`, `Date` and `DateTime`). At each step of its algorithm, codec takes a block of 64 values, puts them into 64x64 bit matrix, transposes it, crops the unused bits of values and returns the rest as a sequence. Unused bits are the bits, that do not differ between maximum and minimum values in the whole data part for which the compression is used.
+
+#### T64B {#t64b}
+
+`T64B` — Compression approach that subtracts the block minimum from each value, then transposes the resulting deltas into a 64x64 bit matrix and crops unused high bits. The number of significant bits is determined by the range between the minimum and maximum values in the block rather than their absolute magnitude. Can be used with integer data types (including `Enum`, `Date`, `DateTime` and `DateTime64`). Supports an optional `'bit'` argument (`T64B('bit')`) which enables full bit-level transposition within each byte group in addition to the byte-level transposition.
 
 `DoubleDelta` and `Gorilla` codecs are used in Gorilla TSDB as the components of its compressing algorithm. Gorilla approach is effective in scenarios when there is a sequence of slowly changing values with their timestamps. Timestamps are effectively compressed by the `DoubleDelta` codec, and values are effectively compressed by the `Gorilla` codec. For example, to get an effectively stored table, you can create it in the following configuration:
 
