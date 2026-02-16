@@ -201,6 +201,7 @@ void registerCodecMultiple(CompressionCodecFactory & factory);
 /// in standalone build
 void registerCodecDelta(CompressionCodecFactory & factory);
 void registerCodecT64(CompressionCodecFactory & factory);
+void registerCodecT64B(CompressionCodecFactory & factory);
 void registerCodecDoubleDelta(CompressionCodecFactory & factory);
 void registerCodecGorilla(CompressionCodecFactory & factory);
 void registerCodecEncrypted(CompressionCodecFactory & factory);
@@ -216,6 +217,7 @@ CompressionCodecFactory::CompressionCodecFactory()
     registerCodecMultiple(*this);
     registerCodecDelta(*this);
     registerCodecT64(*this);
+    registerCodecT64B(*this);
     registerCodecDoubleDelta(*this);
     registerCodecGorilla(*this);
     registerCodecEncrypted(*this);
