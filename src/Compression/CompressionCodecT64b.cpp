@@ -17,13 +17,12 @@ namespace DB
 {
     
 /// Like T64, this codec transposes a 64-element block into a bit matrix and crops unused bits.
-/// The key difference: T64B subtracts `min` from every value before transposing, which eliminates
+/// The difference: T64B subtracts `min` from every value before transposing, which eliminates
 /// redundant bits when values cluster around a non-zero baseline.
 ///
-/// For signed types, we always treat the delta as unsigned (value - min is always >= 0), which
-/// avoids the complexity of T64's sign-bit handling during restoreUpperBits.
+/// For signed types, we always treat the delta as unsigned (value - min is always >= 0)
 ///
-/// Header format is identical to T64: [min (8 bytes)][max (8 bytes)], so no schema change needed.
+/// Header format is similar to T64: [min (8 bytes)][max (8 bytes)].
 class CompressionCodecT64B : public ICompressionCodec
 {
 public:
@@ -55,7 +54,7 @@ protected:
     bool isGenericCompression() const override { return false; }
     String getDescription() const override
     {
-        return "Preprocessor. Subtracts min from each value, then transposes into a bit matrix; often better than T64 for clustered data.";
+        return "Preprocessor. Subtracts min from each value, then transposes into a bit matrix similar to T64. This version can also remove lower order bits";
     }
 
 private:
