@@ -3,13 +3,13 @@ DROP TABLE IF EXISTS t64;
 CREATE TABLE t64
 (
     i8 Int8,
-    t_i8 Int8 Codec(T64('normalize'), LZ4),
+    t_i8 Int8 Codec(T64('remove_offset'), LZ4),
     i16 Int16,
-    t_i16 Int16 Codec(T64('normalize'), LZ4),
+    t_i16 Int16 Codec(T64('remove_offset'), LZ4),
     i32 Int32,
-    t_i32 Int32 Codec(T64('normalize'), LZ4),
+    t_i32 Int32 Codec(T64('remove_offset'), LZ4),
     i64 Int64,
-    t_i64 Int64 Codec(T64('normalize'), LZ4)
+    t_i64 Int64 Codec(T64('remove_offset'), LZ4)
 ) ENGINE MergeTree() ORDER BY tuple();
 
 INSERT INTO t64 SELECT toInt32(number)-1 AS x, x, x, x, x, x, x, x FROM numbers(2);
