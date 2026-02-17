@@ -21,7 +21,7 @@ namespace DB
 /// It detects unused bits by calculating min and max values of data part, saving them in header in compression phase.
 /// There's a special case with signed integers parts with crossing zero data. Here it stores one more bit to detect sign of value.
 ///
-/// With 'normalize' option, subtracts min from each value before transposing. The delta (value - min)
+/// With 'remove_offset' option, subtracts min from each value before transposing. The delta (value - min)
 /// is always unsigned and non-negative, which avoids sign-bit complexity and eliminates redundant bits
 /// when values cluster around a non-zero baseline.
 class CompressionCodecT64 : public ICompressionCodec
@@ -60,10 +60,11 @@ protected:
     bool isGenericCompression() const override { return false; }
     String getDescription() const override
     {
-        return "Preprocessor. Crops unused bits; puts them into a 64x64 bit matrix; optimized for 64-bit data types.";
+        return "Preprocessor. Crops unused bits; puts them into a 64x64 bit matrix; optimized for 64-bit data types. ";
     }
 
 private:
+    // type_idx, variant, normalized_ is required for compression, but not for decompression.
     std::optional<TypeIndex> type_idx;
     Variant variant;
     bool normalize;
@@ -248,10 +249,6 @@ TypeIndex typeIdx(const IDataType * data_type)
     return TypeIndex::Nothing;
 }
 
-/// ============================================================================
-/// Transpose helpers
-/// ============================================================================
-
 void transpose64x8(UInt64 * src_dst)
 {
     const auto * src8 = reinterpret_cast<const UInt8 *>(src_dst);
@@ -351,10 +348,7 @@ void clear(T * buf)
         buf[i] = 0;
 }
 
-/// ============================================================================
-/// Load / store helpers — unnormalized path 
-/// ============================================================================
-
+/// Load / store helpers — unnormalized path
 template <typename T>
 void load(const char * src, T * buf, UInt32 tail = 64)
 {
@@ -379,13 +373,22 @@ void store(const T * buf, char * dst, UInt32 tail = 64)
     memcpy(dst, buf, tail * sizeof(T));
 }
 
-/// ============================================================================
-/// Load / store helpers — normalize path
-/// ============================================================================
-
 template <typename T>
 using UnsignedOf = std::make_unsigned_t<T>;
 
+/// Two's complement maps 
+///
+///   unsigned:  0    1  ...  127  128  129  ...  255
+///   signed:    0    1  ...  127 -128 -127  ...   -1
+///
+/// Subtracting min measures the distance between two positions on this circle.
+///
+///   both negative:  value= -50, umin=-100 -> 11001110 - 10011100 = 00110010 = 50
+///   cross zero:     value=  50, umin=-100 -> 00110010 - 10011100 = 10010110 = 150
+///   both positive:  value= 100, umin=  50 -> 01100100 - 00110010 = 00110010 = 50
+///
+/// We cast to unsigned to make wraparound well-defined in C++,
+/// since signed overflow is undefined behavior.
 MULTITARGET_FUNCTION_AVX512BW_AVX512F_AVX2_SSE42(
 MULTITARGET_FUNCTION_HEADER(
 template <typename T>
@@ -431,6 +434,17 @@ ALWAYS_INLINE void loadDelta(const char * src, UnsignedOf<T> * buf, T min_val, U
     }
 }
 
+/// Restore original values by adding min back to each unsigned delta.
+///
+/// Adding min moves each value back to its original position on the circle.
+/// Any carry bit beyond 2^N is simply discarded, giving back the original bits:
+///
+/// both negative:  
+/// delta= 50, umin=156 -> 00110010 + 10011100 = (0)11001110 -> 11001110 = Int8  -50
+/// cross zero:     
+/// delta=150, umin=156 -> 10010110 + 10011100 = (1)00110010 -> 00110010 = Int8   50
+/// both positive:  
+/// delta= 50, umin=50 -> 00110010 + 00110010 = (0)01100100 -> 01100100 = Int8  100
 MULTITARGET_FUNCTION_AVX512BW_AVX512F_AVX2_SSE42(
 MULTITARGET_FUNCTION_HEADER(
 template <typename T>
@@ -467,10 +481,6 @@ ALWAYS_INLINE void storeDelta(const UnsignedOf<T> * buf, char * dst, T min_val, 
         storeDeltaImpl<T>(buf, dst, min_val, tail);
     }
 }
-
-/// ============================================================================
-/// Transpose — multitarget
-/// ============================================================================
 
 MULTITARGET_FUNCTION_AVX512BW_AVX512F_AVX2_SSE42(
 MULTITARGET_FUNCTION_HEADER(
@@ -587,16 +597,23 @@ ALWAYS_INLINE void reverseTranspose(const char * src, T * buf, UInt32 num_bits, 
     }
 }
 
-/// ============================================================================
-/// Upper-bits restoration — unnormalized T64
-/// ============================================================================
-
+/// Unnormalized:
+/// 3 cases for restoring cropped high bits:
+/// case 1: unsigned T -> sign_bit/upper_max compiled away, all values same side
+///         just OR upper_min for all values
+///
+/// case 2: signed T, same side (no cross-zero) -> sign_bit=0
+///         just OR upper_min for all values
+///
+/// case 3: signed T, cross-zero (min=-5, max=10) -> sign_bit=10000
+///         check each value individually:      
+///         bit4=1 -> was negative -> OR upper_min (1111...100000)
+///         bit4=0 -> was positive -> OR upper_max (0000...000000)
 template <typename T, typename MinMaxT = std::conditional_t<is_signed_v<T>, Int64, UInt64>>
 void restoreUpperBits(T * buf, T upper_min, T upper_max [[maybe_unused]], T sign_bit [[maybe_unused]], UInt32 tail = 64)
 {
     if constexpr (is_signed_v<T>)
     {
-        /// Restore some data as negatives and others as positives
         if (sign_bit)
         {
             for (UInt32 col = 0; col < tail; ++col)
@@ -617,11 +634,7 @@ void restoreUpperBits(T * buf, T upper_min, T upper_max [[maybe_unused]], T sign
         buf[col] |= upper_min;
 }
 
-/// ============================================================================
-/// Bit-width calculation
-/// ============================================================================
 
-/// unnormalized T64: XOR-based bit width
 UInt32 getValuableBitsNumber(UInt64 min, UInt64 max)
 {
     UInt64 diff_bits = min ^ max;
@@ -630,6 +643,14 @@ UInt32 getValuableBitsNumber(UInt64 min, UInt64 max)
     return 0;
 }
 
+
+// SIGNED cross-zero (min=-5, max=10): XOR breaks
+// -5  = 1111...11111011
+// 10  = 0000...00001010
+// XOR = 1111...11110001 -> sign bit pollutes, says 64 bits
+// so: which side needs more bits?
+//   min+max >= 0 -> positive side larger
+//   count bits of max: 10 = 1010 -> 4 bits + 1 sign = 5
 UInt32 getValuableBitsNumber(Int64 min, Int64 max)
 {
     if (min < 0 && max >= 0)
@@ -641,7 +662,8 @@ UInt32 getValuableBitsNumber(Int64 min, Int64 max)
     return getValuableBitsNumber(static_cast<UInt64>(min), static_cast<UInt64>(max));
 }
 
-/// normalize path: delta range bit width (value - min is always unsigned)
+// NORMALIZED:
+// range = max - min = 10 - (-5) = 15 -> 4 bits, no special case
 UInt32 getDeltaBitsNumber(UInt64 range)
 {
     if (range)
@@ -769,6 +791,14 @@ UInt32 compressData(const char * src, UInt32 bytes_size, char * dst)
     }
 }
 
+/// Normalized: num_bits covers the unsigned range (max - min), deltas are
+/// always non-negative so no sign handling is needed. On decompression,
+/// storeDelta adds min back to each delta to recover the original value.
+///
+/// Unnormalized: num_bits is derived via XOR of min and max, which may require
+/// an extra sign bit for signed types spanning zero. On decompression, the
+/// stripped upper bits must be restored — either uniformly from upper_min,
+/// or conditionally from upper_max for the cross-zero signed case.
 template <typename T, bool full, bool normalize>
 UInt32 decompressData(const char * src, UInt32 bytes_size, char * dst, UInt32 uncompressed_size)
 {
@@ -917,12 +947,10 @@ UInt32 compressData(const char * src, UInt32 src_size, char * dst, Variant varia
             return compressData<T, true, true>(src, src_size, dst);
         return compressData<T, false, true>(src, src_size, dst);
     }
-    else
-    {
-        if (variant == Variant::Bit)
-            return compressData<T, true, false>(src, src_size, dst);
-        return compressData<T, false, false>(src, src_size, dst);
-    }
+
+    if (variant == Variant::Bit)
+        return compressData<T, true, false>(src, src_size, dst);
+    return compressData<T, false, false>(src, src_size, dst);
 }
 
 template <typename T>
@@ -934,12 +962,10 @@ UInt32 decompressData(const char * src, UInt32 src_size, char * dst, UInt32 unco
             return decompressData<T, true, true>(src, src_size, dst, uncompressed_size);
         return decompressData<T, false, true>(src, src_size, dst, uncompressed_size);
     }
-    else
-    {
-        if (variant == Variant::Bit)
-            return decompressData<T, true, false>(src, src_size, dst, uncompressed_size);
-        return decompressData<T, false, false>(src, src_size, dst, uncompressed_size);
-    }
+
+    if (variant == Variant::Bit)
+        return decompressData<T, true, false>(src, src_size, dst, uncompressed_size);
+    return decompressData<T, false, false>(src, src_size, dst, uncompressed_size);
 }
 
 } // anonymous namespace
@@ -948,18 +974,15 @@ UInt32 decompressData(const char * src, UInt32 src_size, char * dst, UInt32 unco
 /// ============================================================================
 /// Cookie layout (1 byte):
 ///   bit 7: Variant (0=Byte, 1=Bit)
-///   bit 6: normalize flag (0=original, 1=normalize/delta)
+///   bit 6: normalize flag (0=original, 1=normalize)
 ///   bits 0-5: MagicNumber (type id)
 ///
-/// Backward compatible: old data has bit 6 = 0 and all existing MagicNumber
-/// values fit in 6 bits (max value 24), so old cookies decode correctly.
 /// ============================================================================
-
 UInt32 CompressionCodecT64::doCompressData(const char * src, UInt32 src_size, char * dst) const
 {
     UInt8 cookie = static_cast<UInt8>(serializeTypeId(type_idx))
                  | static_cast<UInt8>(static_cast<UInt8>(variant) << 7)
-                 | static_cast<UInt8>(static_cast<UInt8>(normalize) << 6);
+                 | static_cast<UInt8>(static_cast<UInt8>(normalize) << 6); 
     memcpy(dst, &cookie, 1);
     dst += 1;
     switch (baseType(*type_idx))
@@ -998,8 +1021,7 @@ UInt32 CompressionCodecT64::doDecompressData(const char * src, UInt32 src_size, 
 
     auto saved_variant = static_cast<Variant>((cookie >> 7) & 0x1);
     auto saved_normalize = static_cast<bool>((cookie >> 6) & 0x1);
-    TypeIndex saved_type_id = deserializeTypeId(cookie & 0x3F);
-
+    TypeIndex saved_type_id = deserializeTypeId(cookie & 0x3F); 
     switch (baseType(saved_type_id))
     {
         case TypeIndex::Int8:
