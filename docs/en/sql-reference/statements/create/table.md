@@ -1,4 +1,4 @@
-f---
+---
 description: 'Documentation for Table'
 keywords: ['compression', 'codec', 'schema', 'DDL']
 sidebar_label: 'TABLE'
@@ -433,13 +433,14 @@ These codecs are designed to make compression more effective by exploiting speci
 
 #### T64 {#t64}
 
-`T64` — Compression for integer types (`Int`, `Enum`, `Date`, `DateTime`) that eliminates unused high-order bits. The algorithm groups 64 values into a 64×64 bit matrix, transposes it to organize data by bit position rather than by value, then stores only the bit planes needed to represent the range between minimum and maximum values in the block. For example, if you have 64 values alternating between `20` (`...010100`) and `22` (`...010110`), the range only requires the lowest 2 bits since the higher bits are identical across all values. After transposition, bit plane 0 (the LSB) contains all zeros, and bit plane 1 contains an alternating pattern of 1s and 0s—these 2 bit planes (128 bits total) replace the original 4,096 bits, with the identical high-order bits reconstructed during decompression. However, if the range spans most of the data type (e.g., from 1 to 2^63), nearly all 64 bit planes must be stored, yielding essentially no saving. Most effective when values stay within a narrow range.
+`T64` — Compression for integer types (`Int`, `Enum`, `Date`, `DateTime`, `IPv4`) that eliminates unused high-order bits. The algorithm groups 64 values into a 64×64 bit matrix, transposes it to organize data by bit position rather than by value, then stores only the bit planes needed to represent the range between minimum and maximum values in the block. For example, if you have 64 values alternating between `20` (`...010100`) and `22` (`...010110`), the range only requires the lowest 2 bits since the higher bits are identical across all values. After transposition, bit plane 0 (the LSB) contains all zeros, and bit plane 1 contains an alternating pattern of 1s and 0s — these 2 bit planes (128 bits total) replace the original 4,096 bits, with the identical high-order bits reconstructed during decompression. However, if the range spans most of the data type (e.g., from 1 to 2^63), nearly all 64 bit planes must be stored, yielding essentially no saving. Most effective when values stay within a narrow range.
 
-#### T64B {#t64b}
+`T64` accepts two optional parameters:
 
-`T64B` — This approach first subtracts the block minimum from each value, then applies the same bit-matrix transposition. By working with deltas (differences from minimum) instead of absolute values, T64B only needs to store bit planes for the range size, not the absolute magnitude. For example, Unix timestamps ranging from `1,700,000,000` to `1,700,000,100` would require many bits with T64 (due to the large absolute values), but T64B subtracts the minimum first, creating deltas of `0` to `100`, which only need 7 bits. This may make T64B effective for clustered data where values are close together but have large absolute magnitudes. Supports integer types (`Int`, `Enum`, `Date`, `DateTime`, `DateTime64`).
+- Transposition variant: `'byte'` (default) for byte-level (8-bit granularity) transposition, or `'bit'` for full bit-level transposition. Bit-level transposition uses more CPU but may achieve better compression when combined with `ZSTD`.
+- Offset removal: a boolean (default `false`). When `true`, the block minimum is subtracted from each value before transposing. By working with deltas instead of absolute values, this mode only needs to store bit planes for the range size rather than the absolute magnitude. For example, Unix timestamps ranging from `1,700,000,000` to `1,700,000,100` would require many bits in the default mode (due to the large absolute values), but with `true` the deltas are `0` to `100`, which only need 7 bits. Most effective for clustered data where values are close together but have large absolute magnitudes.
 
-Transposition variants: Both `T64` and `T64B` support byte-level (8 bit granularity) transposition (default) or full bit-level transposition with the `'bit'` argument (`T64('bit')` or `T64B('bit')`). Bit-level transposition uses more CPU but may achieve better compression when combined with codec `ZSTD`.
+Examples: `T64`, `T64('bit')`, `T64(true)`, `T64('bit', true)`.
 
 `DoubleDelta` and `Gorilla` codecs are used in Gorilla TSDB as the components of its compressing algorithm. Gorilla approach is effective in scenarios when there is a sequence of slowly changing values with their timestamps. Timestamps are effectively compressed by the `DoubleDelta` codec, and values are effectively compressed by the `Gorilla` codec. For example, to get an effectively stored table, you can create it in the following configuration:
 
