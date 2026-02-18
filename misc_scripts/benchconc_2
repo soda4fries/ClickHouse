@@ -1,0 +1,221 @@
+=== t64_source ===
+Loaded 1 queries.
+
+Queries executed: 10 (100%).
+
+localhost:9000, queries: 10, QPS: 2.778, RPS: 277756108.249, MiB/s: 10595.555, result RPS: 2.778, result MiB/s: 0.000.
+
+0%		0.481 sec.	
+10%		0.579 sec.	
+20%		0.612 sec.	
+30%		0.658 sec.	
+40%		0.674 sec.	
+50%		0.712 sec.	
+60%		0.712 sec.	
+70%		0.716 sec.	
+80%		0.739 sec.	
+90%		0.744 sec.	
+95%		0.820 sec.	
+99%		0.820 sec.	
+99.9%		0.820 sec.	
+99.99%		0.820 sec.	
+
+
+
+=== t64_bit_true_zstd ===
+Loaded 1 queries.
+
+Queries executed: 10 (100%).
+
+localhost:9000, queries: 10, QPS: 1.671, RPS: 167097611.127, MiB/s: 6374.268, result RPS: 1.671, result MiB/s: 0.000.
+
+0%		0.927 sec.	
+10%		0.977 sec.	
+20%		0.994 sec.	
+30%		1.077 sec.	
+40%		1.134 sec.	
+50%		1.138 sec.	
+60%		1.138 sec.	
+70%		1.162 sec.	
+80%		1.197 sec.	
+90%		1.271 sec.	
+95%		1.394 sec.	
+99%		1.394 sec.	
+99.9%		1.394 sec.	
+99.99%		1.394 sec.	
+
+
+
+=== t64_bit_false_zstd ===
+Loaded 1 queries.
+
+Queries executed: 10 (100%).
+
+localhost:9000, queries: 10, QPS: 1.360, RPS: 135991588.530, MiB/s: 5187.667, result RPS: 1.360, result MiB/s: 0.000.
+
+0%		1.206 sec.	
+10%		1.325 sec.	
+20%		1.385 sec.	
+30%		1.387 sec.	
+40%		1.390 sec.	
+50%		1.405 sec.	
+60%		1.405 sec.	
+70%		1.421 sec.	
+80%		1.475 sec.	
+90%		1.526 sec.	
+95%		1.598 sec.	
+99%		1.598 sec.	
+99.9%		1.598 sec.	
+99.99%		1.598 sec.	
+
+
+
+=== t64_byte_true_zstd ===
+Loaded 1 queries.
+
+Queries executed: 10 (100%).
+
+localhost:9000, queries: 10, QPS: 1.988, RPS: 198770972.324, MiB/s: 7582.511, result RPS: 1.988, result MiB/s: 0.000.
+
+0%		0.687 sec.	
+10%		0.740 sec.	
+20%		0.841 sec.	
+30%		0.869 sec.	
+40%		0.909 sec.	
+50%		0.948 sec.	
+60%		0.948 sec.	
+70%		1.036 sec.	
+80%		1.074 sec.	
+90%		1.137 sec.	
+95%		1.178 sec.	
+99%		1.178 sec.	
+99.9%		1.178 sec.	
+99.99%		1.178 sec.	
+
+
+
+=== t64_byte_false_zstd ===
+Loaded 1 queries.
+
+Queries executed: 10 (100%).
+
+localhost:9000, queries: 10, QPS: 1.905, RPS: 190490144.986, MiB/s: 7266.622, result RPS: 1.905, result MiB/s: 0.000.
+
+0%		0.832 sec.	
+10%		0.855 sec.	
+20%		0.990 sec.	
+30%		0.995 sec.	
+40%		1.010 sec.	
+50%		1.019 sec.	
+60%		1.019 sec.	
+70%		1.031 sec.	
+80%		1.043 sec.	
+90%		1.123 sec.	
+95%		1.140 sec.	
+99%		1.140 sec.	
+99.9%		1.140 sec.	
+99.99%		1.140 sec.	
+
+
+
+=== t64_bit_true_lz4 ===
+Loaded 1 queries.
+
+Queries executed: 10 (100%).
+
+localhost:9000, queries: 10, QPS: 1.912, RPS: 191152656.279, MiB/s: 7291.895, result RPS: 1.912, result MiB/s: 0.000.
+
+0%		0.775 sec.	
+10%		0.861 sec.	
+20%		0.906 sec.	
+30%		0.980 sec.	
+40%		0.982 sec.	
+50%		1.020 sec.	
+60%		1.020 sec.	
+70%		1.027 sec.	
+80%		1.053 sec.	
+90%		1.094 sec.	
+95%		1.172 sec.	
+99%		1.172 sec.	
+99.9%		1.172 sec.	
+99.99%		1.172 sec.	
+
+
+
+=== t64_bit_false_lz4 ===
+Loaded 1 queries.
+
+Queries executed: 10 (100%).
+
+localhost:9000, queries: 10, QPS: 1.574, RPS: 157362798.628, MiB/s: 6002.914, result RPS: 1.574, result MiB/s: 0.000.
+
+0%		1.067 sec.	
+10%		1.088 sec.	
+20%		1.154 sec.	
+30%		1.189 sec.	
+40%		1.201 sec.	
+50%		1.231 sec.	
+60%		1.231 sec.	
+70%		1.254 sec.	
+80%		1.275 sec.	
+90%		1.358 sec.	
+95%		1.367 sec.	
+99%		1.367 sec.	
+99.9%		1.367 sec.	
+99.99%		1.367 sec.	
+
+
+
+=== t64_byte_true_lz4 ===
+Loaded 1 queries.
+
+Queries executed: 10 (100%).
+
+localhost:9000, queries: 10, QPS: 2.251, RPS: 225137450.167, MiB/s: 8588.312, result RPS: 2.251, result MiB/s: 0.000.
+
+0%		0.527 sec.	
+10%		0.732 sec.	
+20%		0.750 sec.	
+30%		0.804 sec.	
+40%		0.809 sec.	
+50%		0.855 sec.	
+60%		0.855 sec.	
+70%		0.899 sec.	
+80%		0.901 sec.	
+90%		0.931 sec.	
+95%		1.066 sec.	
+99%		1.066 sec.	
+99.9%		1.066 sec.	
+99.99%		1.066 sec.	
+
+
+
+=== t64_byte_false_lz4 ===
+Loaded 1 queries.
+
+Queries executed: 10 (100%).
+
+localhost:9000, queries: 10, QPS: 2.244, RPS: 224375098.097, MiB/s: 8559.231, result RPS: 2.244, result MiB/s: 0.000.
+
+0%		0.711 sec.	
+10%		0.723 sec.	
+20%		0.769 sec.	
+30%		0.795 sec.	
+40%		0.819 sec.	
+50%		0.862 sec.	
+60%		0.862 sec.	
+70%		0.897 sec.	
+80%		0.909 sec.	
+90%		0.909 sec.	
+95%		0.920 sec.	
+99%		0.920 sec.	
+99.9%		0.920 sec.	
+99.99%		0.920 sec.	
+
+
+
+=======================================================
+ Summary
+=======================================================
+table                                  QPS    p50(s)    p95(s)    p99(s)
+-----------------------------------------------------------------------
