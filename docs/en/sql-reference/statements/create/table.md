@@ -438,7 +438,7 @@ These codecs are designed to make compression more effective by exploiting speci
 `T64` accepts two optional parameters:
 
 - Transposition variant: `'byte'` (default) for byte-level (8-bit granularity) transposition, or `'bit'` for full bit-level transposition. Bit-level transposition uses more CPU but may achieve better compression when combined with `ZSTD`.
-- Offset removal: a boolean (default `false`). When `true`, the block minimum is subtracted from each value before transposing. By working with deltas instead of absolute values, this mode only needs to store bit planes for the range size rather than the absolute magnitude. For example, Unix timestamps ranging from `1,700,000,000` to `1,700,000,100` would require many bits in the default mode (due to the large absolute values), but with `true` the deltas are `0` to `100`, which only need 7 bits. Most effective for clustered data where values are close together but have large absolute magnitudes.
+- Offset removal: a boolean (default `false`). When `true`, the block minimum is subtracted from each value before transposing. By working with deltas instead of absolute values, this mode only needs to store bit planes for the range size rather than the absolute magnitude. For example, Unix timestamps ranging from `1,700,000,000` to `1,700,000,100` would require many bits in the default mode (due to the large absolute values), but with `true` the deltas are `0` to `100`, which only need 7 bits. Most effective for clustered data where values are close together but have large absolute magnitudes. Requires settings `allow_offset_compression_in_t64` to be enabled.
 
 Examples: `T64`, `T64('bit')`, `T64(true)`, `T64('bit', true)`.
 
