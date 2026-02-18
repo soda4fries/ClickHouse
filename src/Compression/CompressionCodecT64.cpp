@@ -387,12 +387,15 @@ using UnsignedOf = std::make_unsigned_t<T>;
 ///   cross zero:     value=  50, umin=-100 -> 00110010 - 10011100 = 10010110 = 150
 ///   both positive:  value= 100, umin=  50 -> 01100100 - 00110010 = 00110010 = 50
 ///
-/// We cast to unsigned to make wraparound well-defined in C++,
-/// since signed overflow is undefined behavior.
+/// We cast to unsigned to make wraparound well-defined
+///
+/// 
+/// __restrict__ tells the compiler src and buf never overlap, removes
+/// aliasing check the autovectorizer otherwise emits for char* parameters and inlines
 MULTITARGET_FUNCTION_AVX512BW_AVX512F_AVX2_SSE42(
 MULTITARGET_FUNCTION_HEADER(
 template <typename T>
-void), loadDeltaImpl, MULTITARGET_FUNCTION_BODY((const char * src, UnsignedOf<T> * buf, T min_val, UInt32 tail) /// NOLINT
+void), loadDeltaImpl, MULTITARGET_FUNCTION_BODY((const char * __restrict__ src, UnsignedOf<T> * __restrict__ buf, T min_val, UInt32 tail) /// NOLINT
 {
     using U = UnsignedOf<T>;
     U umin = static_cast<U>(min_val);
@@ -445,10 +448,11 @@ ALWAYS_INLINE void loadDelta(const char * src, UnsignedOf<T> * buf, T min_val, U
 /// delta=150, umin=156 -> 10010110 + 10011100 = (1)00110010 -> 00110010 = Int8   50
 /// both positive:  
 /// delta= 50, umin=50 -> 00110010 + 00110010 = (0)01100100 -> 01100100 = Int8  100
+/// Same as above: buf and dst are always separate allocations at every call site.
 MULTITARGET_FUNCTION_AVX512BW_AVX512F_AVX2_SSE42(
 MULTITARGET_FUNCTION_HEADER(
 template <typename T>
-void), storeDeltaImpl, MULTITARGET_FUNCTION_BODY((const UnsignedOf<T> * buf, char * dst, T min_val, UInt32 tail) /// NOLINT
+void), storeDeltaImpl, MULTITARGET_FUNCTION_BODY((const UnsignedOf<T> * __restrict__ buf, char * __restrict__ dst, T min_val, UInt32 tail) /// NOLINT
 {
     using U = UnsignedOf<T>;
     U umin = static_cast<U>(min_val);
