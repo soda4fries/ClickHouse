@@ -2531,6 +2531,11 @@ If it is set to true, then a user is allowed to executed distributed DDL queries
     DECLARE(Bool, allow_suspicious_codecs, false, R"(
 If it is set to true, allow to specify meaningless compression codecs.
 )", 0) \
+    DECLARE(Bool, allow_offset_compression_in_t64, false, R"(
+If it is set to true, allow the T64 codec to use the offset-removal mode (e.g. `T64(true)` or `T64('bit', true)`).
+This mode subtracts the minimum value from each element before bit-transposition, which can improve compression
+for data that clusters around a non-zero baseline. The feature is disabled by default until it is proven stable.
+)", 0) \
     DECLARE(UInt64, query_profiler_real_time_period_ns, QUERY_PROFILER_DEFAULT_SAMPLE_RATE_NS, R"(
 Sets the period for a real clock timer of the [query profiler](../../operations/optimizing-performance/sampling-query-profiler.md). Real clock timer counts wall-clock time.
 

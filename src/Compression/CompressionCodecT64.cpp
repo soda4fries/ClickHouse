@@ -1,6 +1,8 @@
 #include <cstring>
 
+#include <Common/CurrentThread.h>
 #include <Common/TargetSpecific.h>
+#include <Interpreters/Context.h>
 #include <Common/SipHash.h>
 #include <Compression/ICompressionCodec.h>
 #include <Compression/CompressionFactory.h>
@@ -11,10 +13,16 @@
 #include <Parsers/ASTFunction.h>
 #include <IO/WriteHelpers.h>
 #include <Core/Types.h>
+#include <Core/Settings.h>
 #include <bit>
 
 namespace DB
 {
+
+namespace Setting
+{
+    extern const SettingsBool allow_offset_compression_in_t64;
+}
 
 /// Get 64 integer values, makes 64x64 bit matrix, transpose it and crop unused bits (most significant zeroes).
 /// In example, if we have UInt8 with only 0 and 1 inside 64xUInt8 would be compressed into 1xUInt64.
@@ -1109,6 +1117,17 @@ void registerCodecT64(CompressionCodecFactory & factory)
                     else
                         throw Exception(ErrorCodes::ILLEGAL_CODEC_PARAMETER, "Wrong parameter for T64: {}", name);
                 }
+            }
+        }
+
+        if (remove_offset)
+        {
+            if (auto ctx = CurrentThread::getQueryContext())
+            {
+                if (!ctx->getSettingsRef()[Setting::allow_offset_compression_in_t64])
+                    throw Exception(ErrorCodes::ILLEGAL_CODEC_PARAMETER,
+                        "T64 codec offset-removal mode (`T64(true)`) requires setting "
+                        "`allow_offset_compression_in_t64` to be enabled.");
             }
         }
 
