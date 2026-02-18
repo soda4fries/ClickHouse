@@ -1425,7 +1425,7 @@ TEST(T64NormalizeTest, TranscodeRawInput)
         std::make_shared<DataTypeUInt64>(),
     };
 
-    for (const std::string & codec_name : {"T64('remove_offset')", "T64('bit', 'remove_offset')"})
+    for (const std::string & codec_name : {"T64(true)", "T64('bit', true)"})
     {
         for (const auto & type : types)
         {

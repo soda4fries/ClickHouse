@@ -1055,12 +1055,12 @@ CompressionCodecT64::CompressionCodecT64(std::optional<TypeIndex> type_idx_, Var
     , variant(variant_)
     , remove_offset(remove_offset_)
 {
-    /// Build codec description: T64, T64('bit'), T64('remove_offset'), T64('bit', 'remove_offset')
+    /// Build codec description: T64, T64('bit'), T64(true), T64('bit', true)
     ASTs params;
     if (variant == Variant::Bit)
         params.push_back(make_intrusive<ASTLiteral>("bit"));
     if (remove_offset)
-        params.push_back(make_intrusive<ASTLiteral>("remove_offset"));
+        params.push_back(make_intrusive<ASTLiteral>(true));
 
     if (params.empty())
         setCodecDescription("T64");
@@ -1093,17 +1093,22 @@ void registerCodecT64(CompressionCodecFactory & factory)
             {
                 const auto * literal = child->as<ASTLiteral>();
                 if (!literal)
-                    throw Exception(ErrorCodes::ILLEGAL_CODEC_PARAMETER, "Wrong parameter for T64. Expected: 'bit', 'byte', 'remove_offset'");
-                String name = literal->value.safeGet<String>();
+                    throw Exception(ErrorCodes::ILLEGAL_CODEC_PARAMETER, "Wrong parameter for T64. Expected: 'bit', 'byte', or a boolean");
 
-                if (name == "byte")
-                    variant = Variant::Byte;
-                else if (name == "bit")
-                    variant = Variant::Bit;
-                else if (name == "remove_offset")
-                    remove_offset = true;
+                if (literal->value.getType() == Field::Types::Bool)
+                {
+                    remove_offset = literal->value.safeGet<bool>();
+                }
                 else
-                    throw Exception(ErrorCodes::ILLEGAL_CODEC_PARAMETER, "Wrong parameter for T64: {}", name);
+                {
+                    String name = literal->value.safeGet<String>();
+                    if (name == "byte")
+                        variant = Variant::Byte;
+                    else if (name == "bit")
+                        variant = Variant::Bit;
+                    else
+                        throw Exception(ErrorCodes::ILLEGAL_CODEC_PARAMETER, "Wrong parameter for T64: {}", name);
+                }
             }
         }
 

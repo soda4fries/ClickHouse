@@ -3,9 +3,9 @@ DROP TABLE IF EXISTS t64;
 CREATE TABLE t64
 (
     date16 Date,
-    t_date16 Date Codec(T64('remove_offset'), ZSTD),
+    t_date16 Date Codec(T64(true), ZSTD),
     date_32 Date32,
-    t_date32 Date32 Codec(T64('remove_offset'), ZSTD)
+    t_date32 Date32 Codec(T64(true), ZSTD)
 ) ENGINE MergeTree() ORDER BY tuple();
 
 INSERT INTO t64 values ('1970-01-01', '1970-01-01', '1970-01-01', '1970-01-01');
