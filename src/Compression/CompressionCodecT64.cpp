@@ -85,6 +85,7 @@ namespace
 {
 
 /// Fixed TypeIds that numbers would not be changed between versions.
+/// Max 64 int types. If new types are added when 16 are left, consider using base types
 enum class MagicNumber : uint8_t
 {
     UInt8       = 1,
