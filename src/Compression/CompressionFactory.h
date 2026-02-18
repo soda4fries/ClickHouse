@@ -42,7 +42,12 @@ public:
     CompressionCodecPtr getDefaultCodec() const;
 
     /// Validate codecs AST specified by user and parses codecs description (substitute default parameters)
-    ASTPtr validateCodecAndGetPreprocessedAST(const ASTPtr & ast, const DataTypePtr & column_type, bool sanity_check, bool allow_experimental_codecs) const;
+    ASTPtr validateCodecAndGetPreprocessedAST(
+        const ASTPtr & ast,
+        const DataTypePtr & column_type,
+        bool sanity_check,
+        bool allow_experimental_codecs,
+        bool allow_offset_compression_in_t64 = true) const;
 
     /// Validate codecs AST specified by user
     void validateCodec(const String & family_name, std::optional<int> level, bool sanity_check, bool allow_experimental_codecs) const;

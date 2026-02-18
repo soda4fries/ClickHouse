@@ -77,7 +77,7 @@ bool innerDataTypeIsFloat(const DataTypePtr & type)
 }
 
 ASTPtr CompressionCodecFactory::validateCodecAndGetPreprocessedAST(
-    const ASTPtr & ast, const DataTypePtr & column_type, bool sanity_check, bool allow_experimental_codecs) const
+    const ASTPtr & ast, const DataTypePtr & column_type, bool sanity_check, bool allow_experimental_codecs, bool allow_offset_compression_in_t64) const
 {
     if (const auto * func = ast->as<ASTFunction>())
     {
@@ -158,6 +158,18 @@ ASTPtr CompressionCodecFactory::validateCodecAndGetPreprocessedAST(
                         "Codec {} is experimental and not meant to be used in production."
                         " You can enable it with the 'allow_experimental_codecs' setting",
                         codec_family_name);
+
+                if (!allow_offset_compression_in_t64 && codec_family_name == "T64" && codec_arguments)
+                {
+                    for (const auto & arg : codec_arguments->children)
+                    {
+                        const auto * literal = arg->as<ASTLiteral>();
+                        if (literal && literal->value.getType() == Field::Types::Bool && literal->value.safeGet<bool>())
+                            throw Exception(ErrorCodes::BAD_ARGUMENTS,
+                                "T64 codec offset-removal mode (`T64(true)`) requires the "
+                                "`allow_offset_compression_in_t64` setting to be enabled.");
+                    }
+                }
 
                 codecs_descriptions->children.emplace_back(result_codec->getCodecDesc());
             }

@@ -31,6 +31,7 @@ namespace DB
 namespace Setting
 {
     extern const SettingsBool allow_experimental_codecs;
+    extern const SettingsBool allow_offset_compression_in_t64;
     extern const SettingsBool allow_suspicious_codecs;
     extern const SettingsBool allow_suspicious_ttl_expressions;
 }
@@ -349,7 +350,10 @@ TTLDescription TTLDescription::getTTLFromAST(
         {
             result.recompression_codec =
                 CompressionCodecFactory::instance().validateCodecAndGetPreprocessedAST(
-                    ttl_element->recompression_codec, {}, !context->getSettingsRef()[Setting::allow_suspicious_codecs], context->getSettingsRef()[Setting::allow_experimental_codecs]);
+                    ttl_element->recompression_codec, {},
+                    !context->getSettingsRef()[Setting::allow_suspicious_codecs],
+                    context->getSettingsRef()[Setting::allow_experimental_codecs],
+                    context->getSettingsRef()[Setting::allow_offset_compression_in_t64]);
         }
     }
 
