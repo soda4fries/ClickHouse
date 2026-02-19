@@ -10,7 +10,7 @@
 
 */
 
-SET allow_adjust_frame_of_reference_in_t64 = 1;
+SET allow_frame_of_reference_in_t64 = 1;
 
 DROP TABLE IF EXISTS t64_source;
 DROP TABLE IF EXISTS t64_bit_true_zstd;

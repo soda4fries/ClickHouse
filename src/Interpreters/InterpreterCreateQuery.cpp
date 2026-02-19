@@ -109,7 +109,7 @@ namespace Setting
 {
     extern const SettingsBool allow_experimental_analyzer;
     extern const SettingsBool allow_experimental_codecs;
-    extern const SettingsBool allow_adjust_frame_of_reference_in_t64;
+    extern const SettingsBool allow_frame_of_reference_in_t64;
     extern const SettingsBool allow_experimental_database_materialized_postgresql;
     extern const SettingsBool enable_full_text_index;
     extern const SettingsBool allow_experimental_statistics;
@@ -622,7 +622,7 @@ ColumnsDescription InterpreterCreateQuery::getColumnsDescription(
     bool skip_checks = LoadingStrictnessLevel::SECONDARY_CREATE <= mode;
     bool sanity_check_compression_codecs = !skip_checks && !context_->getSettingsRef()[Setting::allow_suspicious_codecs];
     bool allow_experimental_codecs = skip_checks || context_->getSettingsRef()[Setting::allow_experimental_codecs];
-    bool allow_t64_adjust_frame_of_reference = skip_checks || context_->getSettingsRef()[Setting::allow_adjust_frame_of_reference_in_t64];
+    bool allow_t64_frame_of_reference = skip_checks || context_->getSettingsRef()[Setting::allow_frame_of_reference_in_t64];
 
     ColumnsDescription res;
     auto name_type_it = column_names_and_types.begin();
@@ -683,7 +683,7 @@ ColumnsDescription InterpreterCreateQuery::getColumnsDescription(
             if (col_decl.default_specifier == ColumnDefaultSpecifier::Alias)
                 throw Exception(ErrorCodes::BAD_ARGUMENTS, "Cannot specify codec for column type ALIAS");
             column.codec = CompressionCodecFactory::instance().validateCodecAndGetPreprocessedAST(
-                codec, column.type, sanity_check_compression_codecs, allow_experimental_codecs, allow_t64_adjust_frame_of_reference);
+                codec, column.type, sanity_check_compression_codecs, allow_experimental_codecs, allow_t64_frame_of_reference);
         }
 
         if (auto statistics_desc = col_decl.getStatisticsDesc())

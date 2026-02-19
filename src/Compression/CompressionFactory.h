@@ -47,7 +47,7 @@ public:
         const DataTypePtr & column_type,
         bool sanity_check,
         bool allow_experimental_codecs,
-        bool allow_adjust_frame_of_reference_in_t64 = true) const;
+        bool allow_frame_of_reference_in_t64 = true) const;
 
     /// Validate codecs AST specified by user
     void validateCodec(const String & family_name, std::optional<int> level, bool sanity_check, bool allow_experimental_codecs) const;

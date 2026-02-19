@@ -21,7 +21,7 @@ namespace DB
 /// It detects unused bits by calculating min and max values of data part, saving them in header in compression phase.
 /// There's a special case with signed integers parts with crossing zero data. Here it stores one more bit to detect sign of value.
 ///
-/// With 'adjust_frame_of_reference' option, stores each value as its distance from the block minimum,
+/// With 'frame_of_reference' option, stores each value as its distance from the block minimum,
 /// so values that are large but close together compress as if they were small.
 class CompressionCodecT64 : public ICompressionCodec
 {
@@ -38,8 +38,8 @@ public:
         Bit
     };
 
-    // type_idx, variant, adjust_frame_of_reference_ is required for compression, but not for decompression.
-    CompressionCodecT64(std::optional<TypeIndex> type_idx_, Variant variant_, bool adjust_frame_of_reference_ = false);
+    // type_idx, variant, frame_of_reference_ is required for compression, but not for decompression.
+    CompressionCodecT64(std::optional<TypeIndex> type_idx_, Variant variant_, bool frame_of_reference_ = false);
 
     uint8_t getMethodByte() const override;
 
@@ -63,10 +63,10 @@ protected:
     }
 
 private:
-    // type_idx, variant, adjust_frame_of_reference_ is required for compression, but not for decompression.
+    // type_idx, variant, frame_of_reference_ is required for compression, but not for decompression.
     std::optional<TypeIndex> type_idx;
     Variant variant;
-    bool adjust_frame_of_reference;
+    bool frame_of_reference;
 };
 
 
@@ -696,7 +696,7 @@ void findMinMax(const char * src, UInt32 src_size, T & min, T & max)
 
 using Variant = CompressionCodecT64::Variant;
 
-template <typename T, bool full, bool adjust_frame_of_reference>
+template <typename T, bool full, bool frame_of_reference>
 UInt32 compressData(const char * src, UInt32 bytes_size, char * dst)
 {
     using U = UnsignedOf<T>;
@@ -731,7 +731,7 @@ UInt32 compressData(const char * src, UInt32 bytes_size, char * dst)
     }
 
     UInt32 num_bits;
-    if constexpr (adjust_frame_of_reference)
+    if constexpr (frame_of_reference)
     {
         U delta_range = static_cast<U>(max) - static_cast<U>(min);
         num_bits = getDeltaBitsNumber(static_cast<UInt64>(delta_range));
@@ -747,7 +747,7 @@ UInt32 compressData(const char * src, UInt32 bytes_size, char * dst)
     UInt32 src_shift = sizeof(T) * matrix_size;
     UInt32 dst_shift = sizeof(UInt64) * num_bits;
 
-    if constexpr (adjust_frame_of_reference)
+    if constexpr (frame_of_reference)
     {
         U delta_buf[matrix_size];
 
@@ -795,14 +795,14 @@ UInt32 compressData(const char * src, UInt32 bytes_size, char * dst)
     }
 }
 
-/// Adjust_frame_of_reference: values are stored as distances from min, so num_bits covers
+/// Frame_of_reference: values are stored as distances from min, so num_bits covers
 /// only the range [0, max-min]. storeDelta adds min back on decompression.
 ///
 /// No frame-of-reference adjustment: num_bits is derived via XOR of min and max, which may require
 /// an extra sign bit for signed types spanning zero. On decompression, the
 /// stripped upper bits must be restored — either uniformly from upper_min,
 /// or conditionally from upper_max for the cross-zero signed case.
-template <typename T, bool full, bool adjust_frame_of_reference>
+template <typename T, bool full, bool frame_of_reference>
 UInt32 decompressData(const char * src, UInt32 bytes_size, char * dst, UInt32 uncompressed_size)
 {
     using U = UnsignedOf<T>;
@@ -848,7 +848,7 @@ UInt32 decompressData(const char * src, UInt32 bytes_size, char * dst, UInt32 un
     T max_val [[maybe_unused]] = static_cast<T>(max64);
 
     UInt32 num_bits;
-    if constexpr (adjust_frame_of_reference)
+    if constexpr (frame_of_reference)
     {
         U delta_range = static_cast<U>(max_val) - static_cast<U>(min_val);
         num_bits = getDeltaBitsNumber(static_cast<UInt64>(delta_range));
@@ -883,7 +883,7 @@ UInt32 decompressData(const char * src, UInt32 bytes_size, char * dst, UInt32 un
                         " is not equal to the expected number of elements in the decompressed data ({})",
                         expected, num_elements);
 
-    if constexpr (adjust_frame_of_reference)
+    if constexpr (frame_of_reference)
     {
         U delta_buf[matrix_size];
 
@@ -942,9 +942,9 @@ UInt32 decompressData(const char * src, UInt32 bytes_size, char * dst, UInt32 un
 }
 
 template <typename T>
-UInt32 compressData(const char * src, UInt32 src_size, char * dst, Variant variant, bool do_adjust_frame_of_reference)
+UInt32 compressData(const char * src, UInt32 src_size, char * dst, Variant variant, bool do_frame_of_reference)
 {
-    if (do_adjust_frame_of_reference)
+    if (do_frame_of_reference)
     {
         if (variant == Variant::Bit)
             return compressData<T, true, true>(src, src_size, dst);
@@ -957,9 +957,9 @@ UInt32 compressData(const char * src, UInt32 src_size, char * dst, Variant varia
 }
 
 template <typename T>
-UInt32 decompressData(const char * src, UInt32 src_size, char * dst, UInt32 uncompressed_size, Variant variant, bool do_adjust_frame_of_reference)
+UInt32 decompressData(const char * src, UInt32 src_size, char * dst, UInt32 uncompressed_size, Variant variant, bool do_frame_of_reference)
 {
-    if (do_adjust_frame_of_reference)
+    if (do_frame_of_reference)
     {
         if (variant == Variant::Bit)
             return decompressData<T, true, true>(src, src_size, dst, uncompressed_size);
@@ -977,7 +977,7 @@ UInt32 decompressData(const char * src, UInt32 src_size, char * dst, UInt32 unco
 /// ============================================================================
 /// Cookie layout (1 byte):
 ///   bit 7: Variant (0=Byte, 1=Bit)
-///   bit 6: adjust_frame_of_reference flag (0=original, 1=adjust_frame_of_reference)
+///   bit 6: frame_of_reference flag (0=original, 1=frame_of_reference)
 ///   bits 0-5: MagicNumber (type id)
 ///
 /// ============================================================================
@@ -985,27 +985,27 @@ UInt32 CompressionCodecT64::doCompressData(const char * src, UInt32 src_size, ch
 {
     UInt8 cookie = static_cast<UInt8>(serializeTypeId(type_idx))
                  | static_cast<UInt8>(static_cast<UInt8>(variant) << 7)
-                 | static_cast<UInt8>(static_cast<UInt8>(adjust_frame_of_reference) << 6);
+                 | static_cast<UInt8>(static_cast<UInt8>(frame_of_reference) << 6);
     memcpy(dst, &cookie, 1);
     dst += 1;
     switch (baseType(*type_idx))
     {
         case TypeIndex::Int8:
-            return 1 + compressData<Int8>(src, src_size, dst, variant, adjust_frame_of_reference);
+            return 1 + compressData<Int8>(src, src_size, dst, variant, frame_of_reference);
         case TypeIndex::Int16:
-            return 1 + compressData<Int16>(src, src_size, dst, variant, adjust_frame_of_reference);
+            return 1 + compressData<Int16>(src, src_size, dst, variant, frame_of_reference);
         case TypeIndex::Int32:
-            return 1 + compressData<Int32>(src, src_size, dst, variant, adjust_frame_of_reference);
+            return 1 + compressData<Int32>(src, src_size, dst, variant, frame_of_reference);
         case TypeIndex::Int64:
-            return 1 + compressData<Int64>(src, src_size, dst, variant, adjust_frame_of_reference);
+            return 1 + compressData<Int64>(src, src_size, dst, variant, frame_of_reference);
         case TypeIndex::UInt8:
-            return 1 + compressData<UInt8>(src, src_size, dst, variant, adjust_frame_of_reference);
+            return 1 + compressData<UInt8>(src, src_size, dst, variant, frame_of_reference);
         case TypeIndex::UInt16:
-            return 1 + compressData<UInt16>(src, src_size, dst, variant, adjust_frame_of_reference);
+            return 1 + compressData<UInt16>(src, src_size, dst, variant, frame_of_reference);
         case TypeIndex::UInt32:
-            return 1 + compressData<UInt32>(src, src_size, dst, variant, adjust_frame_of_reference);
+            return 1 + compressData<UInt32>(src, src_size, dst, variant, frame_of_reference);
         case TypeIndex::UInt64:
-            return 1 + compressData<UInt64>(src, src_size, dst, variant, adjust_frame_of_reference);
+            return 1 + compressData<UInt64>(src, src_size, dst, variant, frame_of_reference);
         default:
             break;
     }
@@ -1023,26 +1023,26 @@ UInt32 CompressionCodecT64::doDecompressData(const char * src, UInt32 src_size, 
     src_size -= 1;
 
     auto saved_variant = static_cast<Variant>((cookie >> 7) & 0x1);
-    auto saved_adjust_frame_of_reference = static_cast<bool>((cookie >> 6) & 0x1);
+    auto saved_frame_of_reference = static_cast<bool>((cookie >> 6) & 0x1);
     TypeIndex saved_type_id = deserializeTypeId(cookie & 0x3F);
     switch (baseType(saved_type_id))
     {
         case TypeIndex::Int8:
-            return decompressData<Int8>(src, src_size, dst, uncompressed_size, saved_variant, saved_adjust_frame_of_reference);
+            return decompressData<Int8>(src, src_size, dst, uncompressed_size, saved_variant, saved_frame_of_reference);
         case TypeIndex::Int16:
-            return decompressData<Int16>(src, src_size, dst, uncompressed_size, saved_variant, saved_adjust_frame_of_reference);
+            return decompressData<Int16>(src, src_size, dst, uncompressed_size, saved_variant, saved_frame_of_reference);
         case TypeIndex::Int32:
-            return decompressData<Int32>(src, src_size, dst, uncompressed_size, saved_variant, saved_adjust_frame_of_reference);
+            return decompressData<Int32>(src, src_size, dst, uncompressed_size, saved_variant, saved_frame_of_reference);
         case TypeIndex::Int64:
-            return decompressData<Int64>(src, src_size, dst, uncompressed_size, saved_variant, saved_adjust_frame_of_reference);
+            return decompressData<Int64>(src, src_size, dst, uncompressed_size, saved_variant, saved_frame_of_reference);
         case TypeIndex::UInt8:
-            return decompressData<UInt8>(src, src_size, dst, uncompressed_size, saved_variant, saved_adjust_frame_of_reference);
+            return decompressData<UInt8>(src, src_size, dst, uncompressed_size, saved_variant, saved_frame_of_reference);
         case TypeIndex::UInt16:
-            return decompressData<UInt16>(src, src_size, dst, uncompressed_size, saved_variant, saved_adjust_frame_of_reference);
+            return decompressData<UInt16>(src, src_size, dst, uncompressed_size, saved_variant, saved_frame_of_reference);
         case TypeIndex::UInt32:
-            return decompressData<UInt32>(src, src_size, dst, uncompressed_size, saved_variant, saved_adjust_frame_of_reference);
+            return decompressData<UInt32>(src, src_size, dst, uncompressed_size, saved_variant, saved_frame_of_reference);
         case TypeIndex::UInt64:
-            return decompressData<UInt64>(src, src_size, dst, uncompressed_size, saved_variant, saved_adjust_frame_of_reference);
+            return decompressData<UInt64>(src, src_size, dst, uncompressed_size, saved_variant, saved_frame_of_reference);
         default:
             throw Exception(ErrorCodes::CANNOT_DECOMPRESS, "Cannot decompress T64-encoded data");
     }
@@ -1053,16 +1053,16 @@ uint8_t CompressionCodecT64::getMethodByte() const
     return codecId();
 }
 
-CompressionCodecT64::CompressionCodecT64(std::optional<TypeIndex> type_idx_, Variant variant_, bool adjust_frame_of_reference_)
+CompressionCodecT64::CompressionCodecT64(std::optional<TypeIndex> type_idx_, Variant variant_, bool frame_of_reference_)
     : type_idx(type_idx_)
     , variant(variant_)
-    , adjust_frame_of_reference(adjust_frame_of_reference_)
+    , frame_of_reference(frame_of_reference_)
 {
     /// Build codec description: T64, T64('bit'), T64(true), T64('bit', true)
     ASTs params;
     if (variant == Variant::Bit)
         params.push_back(make_intrusive<ASTLiteral>("bit"));
-    if (adjust_frame_of_reference)
+    if (frame_of_reference)
         params.push_back(make_intrusive<ASTLiteral>(true));
 
     if (params.empty())
@@ -1076,7 +1076,7 @@ void CompressionCodecT64::updateHash(SipHash & hash) const
     getCodecDesc()->updateTreeHash(hash, /*ignore_aliases=*/ true);
     hash.update(type_idx.value_or(TypeIndex::Nothing));
     hash.update(variant);
-    hash.update(adjust_frame_of_reference);
+    hash.update(frame_of_reference);
 }
 
 void registerCodecT64(CompressionCodecFactory & factory)
@@ -1084,7 +1084,7 @@ void registerCodecT64(CompressionCodecFactory & factory)
     auto reg_func = [&](const ASTPtr & arguments, const IDataType * type) -> CompressionCodecPtr
     {
         Variant variant = Variant::Byte;
-        bool adjust_frame_of_reference = false;
+        bool frame_of_reference = false;
 
         if (arguments && !arguments->children.empty())
         {
@@ -1100,7 +1100,7 @@ void registerCodecT64(CompressionCodecFactory & factory)
 
                 if (literal->value.getType() == Field::Types::Bool)
                 {
-                    adjust_frame_of_reference = literal->value.safeGet<bool>();
+                    frame_of_reference = literal->value.safeGet<bool>();
                 }
                 else
                 {
@@ -1123,7 +1123,7 @@ void registerCodecT64(CompressionCodecFactory & factory)
                 throw Exception(
                     ErrorCodes::ILLEGAL_SYNTAX_FOR_CODEC_TYPE, "T64 codec is not supported for specified type {}", type->getName());
         }
-        return std::make_shared<CompressionCodecT64>(type_idx, variant, adjust_frame_of_reference);
+        return std::make_shared<CompressionCodecT64>(type_idx, variant, frame_of_reference);
     };
 
     factory.registerCompressionCodecWithType("T64", codecId(), reg_func);

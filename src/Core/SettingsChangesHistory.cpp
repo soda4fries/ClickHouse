@@ -53,7 +53,7 @@ const VersionToSettingsChangesMap & getSettingsChangesHistory()
             {"ignore_format_null_for_explain", false, true, "FORMAT Null is now ignored for EXPLAIN queries by default"},
             {"output_format_arrow_date_as_uint16", true, false, "Write Date as Arrow DATE32 instead of plain UInt16 by default."},
             {"opentelemetry_start_keeper_trace_probability", 0.0, 0.0, "New setting"},
-            {"allow_adjust_frame_of_reference_in_t64", false, false, "New setting to allow the T64 codec adjust-frame-of-reference mode."},
+            {"allow_frame_of_reference_in_t64", false, false, "New setting to allow the T64 codec frame-of-reference mode."},
         });
         addSettingsChanges(settings_changes_history, "26.1",
         {

@@ -77,7 +77,7 @@ bool innerDataTypeIsFloat(const DataTypePtr & type)
 }
 
 ASTPtr CompressionCodecFactory::validateCodecAndGetPreprocessedAST(
-    const ASTPtr & ast, const DataTypePtr & column_type, bool sanity_check, bool allow_experimental_codecs, bool allow_adjust_frame_of_reference_in_t64) const
+    const ASTPtr & ast, const DataTypePtr & column_type, bool sanity_check, bool allow_experimental_codecs, bool allow_frame_of_reference_in_t64) const
 {
     if (const auto * func = ast->as<ASTFunction>())
     {
@@ -159,15 +159,15 @@ ASTPtr CompressionCodecFactory::validateCodecAndGetPreprocessedAST(
                         " You can enable it with the 'allow_experimental_codecs' setting",
                         codec_family_name);
 
-                if (!allow_adjust_frame_of_reference_in_t64 && codec_family_name == "T64" && codec_arguments)
+                if (!allow_frame_of_reference_in_t64 && codec_family_name == "T64" && codec_arguments)
                 {
                     for (const auto & arg : codec_arguments->children)
                     {
                         const auto * literal = arg->as<ASTLiteral>();
                         if (literal && literal->value.getType() == Field::Types::Bool && literal->value.safeGet<bool>())
                             throw Exception(ErrorCodes::BAD_ARGUMENTS,
-                                "T64 codec adjust-frame-of-reference mode (`T64(true)`) requires the "
-                                "`allow_adjust_frame_of_reference_in_t64` setting to be enabled.");
+                                "T64 codec frame-of-reference mode (`T64(true)`) requires the "
+                                "`allow_frame_of_reference_in_t64` setting to be enabled.");
                     }
                 }
 

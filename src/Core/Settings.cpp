@@ -2531,7 +2531,7 @@ If it is set to true, then a user is allowed to executed distributed DDL queries
     DECLARE(Bool, allow_suspicious_codecs, false, R"(
 If it is set to true, allow to specify meaningless compression codecs.
 )", 0) \
-    DECLARE(Bool, allow_adjust_frame_of_reference_in_t64, false, R"(
+    DECLARE(Bool, allow_frame_of_reference_in_t64, false, R"(
 If true, the T64 codec (e.g. `T64(true)` or `T64('bit', true)`) stores each value as its distance from the block
 minimum, so values that are large but close together compress as if they were small. Disabled by default until proven stable.
 )", 0) \
