@@ -48,7 +48,7 @@ namespace Setting
 {
     extern const SettingsBool allow_experimental_analyzer;
     extern const SettingsBool allow_experimental_codecs;
-    extern const SettingsBool allow_offset_compression_in_t64;
+    extern const SettingsBool allow_adjust_frame_of_reference_in_t64;
     extern const SettingsBool allow_suspicious_codecs;
     extern const SettingsBool allow_suspicious_ttl_expressions;
     extern const SettingsBool flatten_nested;
@@ -1442,7 +1442,7 @@ void AlterCommands::validate(const StoragePtr & table, ContextPtr context) const
                     command.data_type,
                     !settings[Setting::allow_suspicious_codecs],
                     settings[Setting::allow_experimental_codecs],
-                    settings[Setting::allow_offset_compression_in_t64]);
+                    settings[Setting::allow_adjust_frame_of_reference_in_t64]);
             }
 
             all_columns.add(ColumnDescription(column_name, command.data_type));
@@ -1472,7 +1472,7 @@ void AlterCommands::validate(const StoragePtr & table, ContextPtr context) const
                     command.data_type,
                     !context->getSettingsRef()[Setting::allow_suspicious_codecs],
                     context->getSettingsRef()[Setting::allow_experimental_codecs],
-                    context->getSettingsRef()[Setting::allow_offset_compression_in_t64]);
+                    context->getSettingsRef()[Setting::allow_adjust_frame_of_reference_in_t64]);
             }
             auto column_default = all_columns.getDefault(column_name);
             if (column_default)

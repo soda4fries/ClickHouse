@@ -1,19 +1,17 @@
-SET allow_offset_compression_in_t64 = 1;
+SET allow_adjust_frame_of_reference_in_t64 = 1;
 DROP TABLE IF EXISTS t64;
 
 CREATE TABLE t64
 (
     u8 UInt8,
-    t_u8 UInt8 Codec(T64('bit', true), LZ4),
+    t_u8 UInt8 Codec(T64(true), ZSTD),
     u16 UInt16,
-    t_u16 UInt16 Codec(T64('bit', true), LZ4),
+    t_u16 UInt16 Codec(T64(true), ZSTD),
     u32 UInt32,
-    t_u32 UInt32 Codec(T64('bit', true), LZ4),
+    t_u32 UInt32 Codec(T64(true), ZSTD),
     u64 UInt64,
-    t_u64 UInt64 Codec(T64('bit', true), LZ4)
+    t_u64 UInt64 Codec(T64(true), ZSTD)
 ) ENGINE MergeTree() ORDER BY tuple();
-
--- { echoOn }
 
 INSERT INTO t64 SELECT number AS x, x, x, x, x, x, x, x FROM numbers(1);
 INSERT INTO t64 SELECT number AS x, x, x, x, x, x, x, x FROM numbers(2);
