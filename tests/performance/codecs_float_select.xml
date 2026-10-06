@@ -2,6 +2,7 @@
     <settings>
         <allow_suspicious_codecs>1</allow_suspicious_codecs>
         <enable_alp_codec>1</enable_alp_codec>
+        <enable_bytestreamsplit_codec>1</enable_bytestreamsplit_codec>
     </settings>
 
     <substitutions>
